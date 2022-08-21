@@ -1,0 +1,78 @@
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DnD Inventory Tracker</title>
+</head>
+
+<style>
+    .center{
+        margin: auto;
+        text-align: center;
+        width: 50%;
+        border: 1px solid black;
+        padding : 10px;
+    }
+    .submit-button{
+        border-radius: 0;
+        font-size: medium;
+        font-family: serif;
+    }
+    textarea{
+        resize: none;
+    }
+</style>
+<body>
+    <div class = "container" id = "container">
+    <div class = "center">
+        <h1>Create New Item</h1>
+    </div>
+    <br>
+    <div class = "center">
+        <form action = "/create_item" method="post">
+            <label for="Item Name"> Item Name: </label><br>
+            <input type = "text" id = "item-name" name = "item-name" placeholder = "Enter item name"><br><br>
+
+            <label for="Item Value"> Value: </label><br>
+            <input type = "number" id = "item-value" name = "item-value" placeholder = "Enter item value"><br><br>
+
+            <label for="Item Weight"> Weight: </label><br>
+            <input type = "number" id = "item-weight" name = "item-weight" placeholder = "Enter item Weight"><br><br>
+
+            <label for="Item Description">Write a description of this item: </label><br>
+            <textarea id = "Item description" name="item-description" rows = "4" cols = "25">Write a brief description of your item</textarea><br><br>
+
+            <label for="Item Category"> Category: </label><br>
+            <select id="item category" name="item-category">
+                <option value = "simple-melee-weapon">Simple Melee Weapon</option>
+                <option value = "simple-ranged-weapon">Simple Ranged Weapon</option>
+                <option value = "martial-melee-weapon">Martial Melee Weapon</option>
+                <option value = "martial-ranged-weapon">Martial Ranged Weapon</option>
+                <option value = "adventuring-gear">Adventuring Gear</option>
+                <option value = "ammunition">Ammunition</option>
+                <option value = "artisans-tool">Artisan's Tool</option>
+                <option value = "gaming-set">Gaming Set</option>
+                <option value = "kit">Kit</option>
+                <option value = "musical-instrument">Musical Instrument</option>
+                <option value = "light-armor">Light Armor</option>
+                <option value = "medium-armor">Medium Armor</option>
+                <option value = "heavy-armor">Heavy Armor</option>
+                <option value = "shield">Shield</option>
+                <option value = "arcane-focus">Arcane Focus</option>
+                <option value = "druidic-focus">Druidic Focus</option>
+                <option value = "holy-symbol">Holy Symbol</option>
+                <option value = "potion">Potion</option>
+                <option value = "rod">Rod</option>
+                <option value = "scroll">Scroll</option>
+                <option value = "staff">Staff</option>
+                <option value = "wands">Wands</option>
+                <option value = "wondrous-item">Wondrous Item</option>
+            </select><br><br>
+            <!-- form contents must update the database upon submission-->
+            <input type = "submit" class = "submit-button" value = "Submit">
+            
+        </form>
+    </div>
+</body>
+
+

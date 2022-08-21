@@ -1,0 +1,39 @@
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DnD Inventory Tracker</title>
+</head>
+
+<style>
+    .center{
+        margin: auto;
+        text-align: center;
+        width: 50%;
+        border: 1px solid black;
+        padding : 10px;
+    }
+    .submit-button{
+        border-radius: 0;
+        font-size: medium;
+        font-family: serif;
+    }
+</style>
+<body>
+    <div class = "container" id = "container">
+    <div class = "center">
+        <h1>Add New Character</h1>
+    </div>
+    <br>
+    <div class = "center">
+        <form action = "/create_character" method="post">
+            <label for="Character Name"> What is the name of your character?: </label><br>
+            <input type = "text" id = "character-name" name = "character_name" placeholder = "Enter Character Name"><br><br>
+            <!-- form contents must update the database upon submission-->
+            <input type = "submit" class = "submit-button" value = "Submit">
+            
+        </form>
+    </div>
+</body>
+
+

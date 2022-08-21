@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+</head>
+<style>
+    .center {
+        margin: auto;
+        text-align: center;
+        width: 50%;
+        border: 1px solid black;
+        padding: 10px;
+    }
+</style>
+<script>
+    function getCharacterForParty() {
+        fetch('/get_characters')
+        fetch('/get_party_id')
+        .then(response => response.json())
+        .then(json => {
+            json.forEach(function (c, i) {
+                var charNode = document.getElementById('names')
+                    .getElementsByTagName("select")[0]
+                    .getElementsByTagName("option")[i]
+                charNode.innerHTML = c.name;
+                charNode.style.textDecoration = 'none';
+                charNode.setAttribute('data-cid', String(c.characterID));
+            });
+        });
+    }
+</script>
+<body>
+    <!-- functions needed:
+        get_characters()
+        get_party_id-->
+    <!-- Add character to a party
+        //action = "/party_add" method = "post"
+        //get the characters for the userID
+        //display characters as a dropdown
+        //select one character
+        //submit-->
+    <div class="center">
+        <script>getCharactersForParty();</script>
+        <div class="panel" id="characters">
+            <h3>Add Character to party</h3>
+            <form action="/party_add" method="post" id="names">
+                <label for="characters"> Choose Characer: </label><br>
+                <select>
+                    <option data-cid="">&nbsp;</option>
+                    <option data-cid="">&nbsp;</option>
+                    <option data-cid="">&nbsp;</option>
+                    <option data-cid="">&nbsp;</option>
+                    <option data-cid="">&nbsp;</option>
+                </select><br><br>
+                <input type="submit" class="submit-button" value="Submit">
+            </form>
+        </div>
+    </div>
+</body>
+</html>

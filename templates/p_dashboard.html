@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DnD Inventory Tracker</title>
+    <script>
+        
+        function updateCharacterList() {
+            fetch('/get_characters')
+            .then(response => response.json())
+            .then(json => {
+                json.forEach(function (c, i) {
+                    var charNode = document.getElementById('names')
+                    .getElementsByTagName("table")[0]
+                    .getElementsByTagName("tr")[i]
+                    .getElementsByTagName("td")[0];
+
+                    var invNode = document.getElementById('triggers')
+                    .getElementsByTagName("table")[0]
+                    .getElementsByTagName("tr")[i]
+                    .getElementsByTagName("td")[0]
+                    .getElementsByTagName("a")[0];
+
+                    charNode.innerHTML = c.name;
+                    charNode.style.textDecoration = 'none';
+                    charNode.setAttribute('data-cid', String(c.characterID));
+
+                    invNode.setAttribute('href', 'javascript:updateInventoryAndTradePanel(' + String(c.characterID) + ', "' + String(c.name) + '");');
+                    invNode.innerHTML = 'Inventory';
+                });
+            });
+        }
+
+        function updateInventoryAndTradePanel(cid, name) {
+
+            var pid;
+            fetch('/get_party_id?cid=' + cid)
+            .then(response => response.json())
+            .then(json => pid = json);
+
+            fetch('/get_party_list?partyID=' + String(pid))
+            .then(response => response.json())
+            .then(json => {
+                json.forEach(function (c, i) {
+                    if (c.charID != cid) {
+                        var opt = document.createElement("option");
+                        opt.value = c.charID;
+                        opt.innerHTML = c.name;
+                        document.getElementById("other-players").appendChild(opt);
+                    }
+                });
+            });
+
+            document.getElementById('inventory')
+            .getElementsByTagName('p')[0]
+            .innerHTML = name + "'s Inventory";
+
+            document.getElementById('inventory')
+            .setAttribute("data-cid", cid);
+
+            document.getElementById('inventory')
+            .setAttribute("data-name", name);
+
+            fetch('/get_all_items')
+            .then(response => response.json())
+            .then(json => {
+                json.forEach(function (item, i) {
+                    var optcopy1 = document.createElement("option");
+                    optcopy1.value = String(item.itemID);
+                    optcopy1.innerHTML = item.name;
+
+                    var optcopy2 = document.createElement("option");
+                    optcopy2.value = String(item.itemID);
+                    optcopy2.innerHTML = item.name;
+
+                    document.getElementById("item-summary-select").appendChild(optcopy1);
+                    document.getElementById("add-item-select").appendChild(optcopy2);
+                });
+            });
+
+            fetch('/get_inventory?characterID=' + cid)
+            .then(response => response.json())
+            .then(json => {
+                json.forEach(function (item, i) {
+                    var opt = document.createElement("option");
+                    opt.value = String(item.itemID);
+                    opt.innerHTML = item.name;
+                    document.getElementById("my-items").appendChild(opt);
+
+                    var itemNode = document.getElementById('inventory')
+                    .getElementsByTagName("table")[0]
+                    .getElementsByTagName("tr")[i]
+                    .getElementsByTagName("td")[0];
+
+                    var removeNode = document.getElementById('inventory')
+                    .getElementsByTagName("table")[1]
+                    .getElementsByTagName("tr")[i]
+                    .getElementsByTagName("td")[0];
+
+                    var removeButton = document.createElement("a");
+                    var attr = document.createAttribute("data-itemid");
+                    attr.value = String(item.itemID);
+
+                    removeButton.setAttributeNode(attr);
+                    removeButton.setAttribute("href", 'javascript:removeItem(' + String(item.itemID) +');');
+                    removeButton.innerHTML = "Remove"
+
+                    itemNode.style.textDecoration = 'none';
+                    itemNode.innerHTML = item.name;
+                    itemNode.setAttribute('data-itemid', String(item.itemID));
+                    removeNode.style.textDecoration = 'initial';
+                    removeNode.appendChild(removeButton);
+
+
+                });
+            });
+
+            document.getElementById('inventory').removeAttribute('hidden');
+        }
+
+        function updateItemSummary() {
+            // get vallue of selected from "item-summary-select" and update rows of
+            // "selected-vals" table after making call to get_item with itemid from value
+            // also update "item-disc"
+
+            var iid = document.getElementById("item-summary-select").value;
+            fetch("/get_item?itemID=" + String(iid))
+            .then(response => response.json())
+            .then(json => {
+                var trows = document.getElementById("selected-vals").getElementsByTagName("table")[0].rows;
+                trows[0].cells[0].innerHTML = json.name;
+                trows[0].cells[0].style.textDecoration = "none";
+                trows[1].cells[0].innerHTML = json.category;
+                trows[1].cells[0].style.textDecoration = "none";
+                trows[2].cells[0].innerHTML = json.weight;
+                trows[2].cells[0].style.textDecoration = "none";
+                trows[3].cells[0].innerHTML = json.value;
+                trows[3].cells[0].style.textDecoration = "none";
+
+                document.getElementById("item-desc").innerHTML = json.description;
+                
+                
+            });
+        }
+
+        function sendItem() {
+            // get value of selected from "other-players" as cid
+            // get value of selected from "my-items" as itemid
+            // call inventory_delete on cid from "inventory" panel
+            // call inventory_add on cid from "other-players"
+
+            var senderID = document.getElementById("inventory").getAttribute("data-cid");
+            var senderName = document.getElementById("invetory").getAttribute("data-name");
+            var recipientID = document.getElementById("other-players").value;
+            var iid = document.getElementById("my-items").value;
+
+            fetch("/inventory_delete?characterID=" + String(senderID) + "&itemID=" + String(iid));
+            fetch("/inventory_add?characterID=" + String(recipientID) + "&itemID=" + String(iid));
+            updateInventoryAndTradePanel(String(senderID), String(senderName));
+        }
+        
+        function addItem() {
+            var thiscid = document.getElementById("inventory").getAttribute("data-cid");
+            var thisname = document.getElementById("inventory").getAttribute("data-name")
+            var iid = document.getElementById("add-item-select").value;
+            fetch("/inventory_add?characterID=" + thiscid + "&itemID=" + iid);
+            window.location.reload();
+        }
+        
+        function removeItem(iid) {
+            // inverse of addItem() except use item id from "removes" first table child   
+            var thiscid = document.getElementById("inventory").getAttribute("data-cid");
+            fetch("inventory_delete?characterID=" + thiscid + "&itemID=" + iid);
+            window.location.reload();
+        }
+        
+        function testFlask() {
+            fetch('/get_inventory?characterID=1')
+            .then(response => response.json())
+            .then(json => console.log(json));
+        }
+    </script>
+</head>
+<style>
+    body {
+        margin: 0;   
+    }
+
+    .container {
+        width: 100vw;
+        height: 100vh;
+
+        font-family: serif;
+        font-weight: bold;
+        font-size: large;
+
+        display: grid;
+        grid-template-rows: 150px 1fr 1fr 75px;
+        grid-template-columns: 1fr 1fr;
+
+        gap: 10px;
+        padding: 50px;
+        box-sizing: border-box;
+    }
+
+    #container {
+        padding: 10px;
+        border: 1px solid #000;
+    }
+
+    .container .page-title {
+        margin-bottom: 10px;
+        padding: 10px;
+        grid-row-start: 1;
+        grid-row-end: 1;
+        grid-column-start: 1;
+        grid-column-end: span 2;
+        font-weight: bolder;
+        font-size: xx-large;
+        text-align: center;
+        align-self: end;
+        border: 1px solid #000;
+    }
+
+    .panel{
+        text-align: center;
+        border: 1px solid #000;
+    }
+
+    .flex {
+        display: flex;
+        border: none;
+        padding: 0;
+    }
+
+    .panel p{
+        padding-left: 5px;
+    }
+
+    .section {
+        flex: 50%;
+        padding: 5px;
+        border: none;
+    }
+
+    .btn-flex {
+        display: block;
+        padding: 5px;
+        border: none;
+    }
+
+    .panel table {
+        width: 100%;
+        font-size: medium;
+        font-weight: normal;
+    }
+
+    .panel table td {
+        padding: 5px;
+    }
+
+    tr:nth-child(odd) {
+        background-color: #f2f2f2;
+    }
+    
+    .panel button {
+        margin-top: 5%;
+        border-radius: 0;
+        font-size: medium;
+        font-family: serif;
+    }
+
+    #add-item-btn {
+        appearance: auto;
+        text-rendering: auto;
+        color: -internal-light-dark(black, white);
+        letter-spacing: normal;
+        word-spacing: normal;
+        line-height: normal;
+        text-transform: none;
+        text-indent: 0px;
+        text-shadow: none;
+        display: inline-block;
+        text-align: center;
+        align-items: flex-start;
+        cursor: default;
+        box-sizing: border-box;
+        background-color: -internal-light-dark(rgb(239, 239, 239), rgb(59, 59, 59));
+        margin: 0em;
+        padding: 1px 6px;
+        border-width: 2px;
+        border-style: outset;
+        border-color: -internal-light-dark(rgb(118, 118, 118), rgb(133, 133, 133));
+        border-image: initial;
+        margin-top: 5%;
+        border-radius: 0;
+        font-size: medium;
+        font-family: serif;
+    }
+
+    #logout {
+        margin-bottom: 10px;
+        padding: 10px;
+        grid-row-start: 4;
+        grid-row-end: 4;
+        grid-column-start: 1;
+        grid-column-end: span 2;
+        font-weight: bolder;
+        font-size: normal;
+        text-align: center;
+        align-self: end;
+        /* border: 1px solid #000; */
+    }
+
+</style>
+<body>
+    <script>updateCharacterList();</script>
+    <div class="container" id="container">
+        <p class="page-title">Player Dashboard</p>
+
+        <div class="panel" id="characters">
+            <p>Active Characters</p>
+            <div class="flex">
+                <div class="section" id="names">
+                    <table>
+                        <tr>
+                            <td data-cid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td data-cid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td data-cid="" style='text-decoration: underline;'>&nbsp;</td> 
+                        </tr>
+                        <tr>
+                            <td data-cid="" style='text-decoration: underline;'>&nbsp;</td>  
+                        </tr>
+                        <tr>
+                            <td data-cid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="section" id="triggers">
+                    <table id="btn-table">
+                        <tr>
+                            <td><a href="">&nbsp;</a></td>
+                        </tr>
+                        <tr>
+                            <td><a href="">&nbsp;</a></td>
+                        </tr>
+                        <tr>
+                            <td><a href="">&nbsp;</a></td>
+                        </tr>
+                        <tr>
+                            <td><a href="">&nbsp;</a></td> 
+                        </tr>
+                        <tr>
+                            <td><a href="">&nbsp;</a></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="btn-flex">
+                <form action="/create_character"><button>New Character</button></form>
+            </div>
+        </div>
+        
+        <div hidden class="panel" id="inventory" data-cid="" data-name="">
+            <p></p>
+            <div class="flex">
+                <div class="section" id="items">
+                    <table>
+                        <tr>
+                            <td data-itemid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td data-itemid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td data-itemid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td data-itemid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td data-itemid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="section" id="removes">
+                    <table id="btn-table">
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <form class="btn-flex" action="javascript:addItem();">
+                <button style="margin-right: 5px;" type="submit" id="add-item-btn">Add Item</button>
+                <select style="margin-left: 5px;" class="section" id="add-item-select">
+                </select>
+            </form>
+                <!-- <form action="create_party.html"><button>Trade Item</button></form> -->
+            <!-- </div> -->
+        </div>
+
+        <div class="panel" id="trade">
+            <p>Trade Items</p>
+            <p></p>
+            <!-- <div class="flex"> -->
+            <form class="flex" id="trade-form">
+                <!-- <div class="section" id="other-players"> -->
+                <select class="section" id="other-players" style="margin: 10px;">
+                </select>
+
+                <!-- </div> -->
+                <!-- <div class="section" id="my-items"> -->
+                <select class="section" id="my-items" style="margin: 10px;">
+                </select>
+
+                <!-- </div> -->
+            </form>
+            <!-- </div> -->
+            <div class="btn-flex">
+                <form action="javascript:sendItem();"><button type="submit" style="margin-top: 37%;">Send Item</button></form>
+            </div>
+        </div>
+
+        <div class="panel" id="summaries">
+            <p>Summary of Items</p>
+            <div class="flex">
+                <div class="section" id="selected-attrs">
+                    <table>
+                        <tr>
+                            <td>Name</td>
+                        </tr>
+                        <tr>
+                            <td>Category</td>
+                        </tr>
+                        <tr>
+                            <td>Weight</td>                        
+                        </tr>
+                        <tr>
+                            <td>Value</td> 
+                        </tr>
+                    </table>
+                </div>
+                <div class="section" id="selected-vals">
+                    <table>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="flex">
+                <select class="section" id="item-summary-select" style="text-align: center; margin: 10px;" onchange="javascript:updateItemSummary()">
+                    <option disabled selected>-</option>
+                </select>
+                <div class="section" id="item-desc-div">
+                    <p id="item-desc" style="font-size: small; font-weight: bold;">
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <a id="logout" href="/logout">Log Out</a>
+    </div>
+
+
+</body>
+</html>

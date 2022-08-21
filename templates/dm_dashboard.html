@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DnD Inventory Tracker</title>
+    <script>
+        
+        function updatePartyList() {
+            fetch('/get_parties')
+            .then(response => response.json())
+            .then(json => {
+                json.forEach(function (p, i) {
+                    var partyNode = document.getElementById('party-names')
+                    .getElementsByTagName("table")[0]
+                    .getElementsByTagName("tr")[i]
+                    .getElementsByTagName("td")[0];
+
+                    var entrNode = document.getElementById('triggers')
+                    .getElementsByTagName("table")[0]
+                    .getElementsByTagName("tr")[i]
+                    .getElementsByTagName("td")[0]
+                    .getElementsByTagName("a")[0];
+
+                    partyNode.innerHTML = p.name;
+                    partyNode.style.textDecoration = 'none';
+                    partyNode.setAttribute('data-pid', String(p.partyID));
+
+                    entrNode.setAttribute('href', 'javascript:updatePartyAndItemsPanel(' + String(p.partyID) + ', "' + String(p.name) + '");');
+                    entrNode.innerHTML = 'Enter';
+                });
+            });
+        }
+
+        function updatePartyAndItemsPanel(pid, name) {
+
+            document.getElementById("characters")
+            .getElementsByTagName("p")[0]
+            .innerHTML = String(name) + " Characters";
+
+            document.getElementById("characters")
+            .setAttribute("data-pid", String(pid));
+
+            fetch('/get_party_list?partyID=' + String(pid))
+            .then(response => response.json())
+            .then(json => {
+                json.forEach(function (c, i) {
+                    var tcell = document.getElementById("char-names")
+                    .getElementsByTagName("table")[0]
+                    .rows[i].cells[0];
+
+                    var removeNode = document.getElementById('removes')
+                    .getElementsByTagName("table")[1]
+                    .rows[i].cells[0];
+
+                    var removeButton = document.createElement("a");
+                    var attr = document.createAttribute("data-cid");
+                    attr.value = String(c.charID);
+
+                    removeButton.setAttributeNode(attr);
+                    removeButton.setAttribute("href", 'javascript:removeCharacter(' + String(c.charID) +');');
+                    removeButton.innerHTML = "Remove";
+
+                    removeNode.style.textDecoration = 'initial';
+                    removeNode.appendChild(removeButton);
+                    
+                    tcell.innerHTML = String(c.name);
+                    tcell.setAttributeNode("data-cid", String(c.charID));
+                });
+            });
+
+            fetch('/get_all_items')
+            .then(response => response.json())
+            .then(json => {
+                json.forEach(function (item, i) {
+                    var optcopy1 = document.createElement("option");
+                    optcopy1.value = String(item.itemID);
+                    optcopy1.innerHTML = item.name;
+
+                    var optcopy2 = document.createElement("option");
+                    optcopy2.value = String(item.itemID);
+                    optcopy2.innerHTML = item.name;
+
+                    document.getElementById("global-items").appendChild(optcopy1);
+                    document.getElementById("item-summary-select").appendChild(optcopy2);
+                });
+            });
+
+            fetch('/get_custom_items')
+            .then(response => response.json()) 
+            .then(json => {
+                json.forEach(function (item, i) {
+                    var cusopt = document.createElement("option");
+                    cusopt.value = String(item.itemID);
+                    cusopt.innerHTML = item.name;
+
+                    var cusopt1 = document.createElement("option");
+                    cusopt1.value = String(item.itemID);
+                    cusopt1.innerHTML = item.name;
+
+                    document.getElementById("custom-items").appendChild(cusopt);
+                    document.getElementById("item-summary-select").appendChild(cusopt1);
+                });
+            });
+
+            fetch("/get_all_users")
+            .then(response => response.json())
+            .then(json => {
+                json.forEach(function (u, i) {
+                    var useropt = document.createElement("option");
+                    useropt.value = u.userID;
+                    useropt.innerHTML = u.username;
+
+                    document.getElementById("add-char-user-select").appendChild(useropt);
+                });
+            });
+
+            document.getElementById("characters").removeAttribute("hidden");
+            document.getElementById("items").removeAttribute("hidden");
+
+        }
+
+        function updateUserCharacters() {
+            var thisuid = document.getElementById("add-char-user-select").value;
+            console.log(thisuid);
+            // document.getElementById("add-char-select").options.length = 0;
+
+            while (document.getElementById("add-char-select").options.length > 0) {
+                document.getElementById("add-char-select").remove(0);
+            }
+
+            fetch("/get_characters?uid=" + String(thisuid))
+            .then(response => response.json())
+            .then(json => {
+                console.log(json);
+                json.forEach(function (c, i) {
+                    console.log(c);
+                    var charopt = document.createElement("option");
+                    charopt.value = String(c.characterID);
+                    charopt.innerHTML = c.name;
+
+                    document.getElementById("add-char-select").appendChild(charopt);
+                });
+            });
+        }
+
+        function updateItemSummary() {
+            // get vallue of selected from "item-summary-select" and update rows of
+            // "selected-vals" table after making call to get_item with itemid from value
+            // also update "item-disc"
+
+            var iid = document.getElementById("item-summary-select").value;
+            fetch("/get_item?itemID=" + String(iid))
+            .then(response => response.json())
+            .then(json => {
+                var trows = document.getElementById("selected-vals").getElementsByTagName("table")[0].rows;
+                trows[0].cells[0].innerHTML = json.name;
+                trows[0].cells[0].style.textDecoration = "none";
+                trows[1].cells[0].innerHTML = json.category;
+                trows[1].cells[0].style.textDecoration = "none";
+                trows[2].cells[0].innerHTML = json.weight;
+                trows[2].cells[0].style.textDecoration = "none";
+                trows[3].cells[0].innerHTML = json.value;
+                trows[3].cells[0].style.textDecoration = "none";
+
+                document.getElementById("item-desc").innerHTML = json.description;
+                
+                
+            });
+        }
+        
+        function addCharacter() {
+
+            var thispid = document.getElementById("characters").getAttribute("data-pid");
+            var cidtoadd = document.getElementById("add-char-select").value;
+
+            fetch('/party_add?characterID=' + cidtoadd + '&partyID=' + thispid);
+            window.location.reload();
+        }
+        
+        function removeCharacter(cid) {
+            // inverse of addItem() except use item id from "removes" first table child   
+            var thispid = document.getElementById("characters").getElementsByTagName("p")[0].getAttribute("data-pid");
+            fetch("/party_delete?partyID=" + thispid + "&characterID=" + String(cid));
+            window.location.reload();
+        }
+        
+        function testFlask() {
+            fetch('/get_inventory?characterID=1')
+            .then(response => response.json())
+            .then(json => console.log(json));
+        }
+    </script>
+</head>
+<style>
+    body {
+        margin: 0;   
+    }
+
+    .container {
+        width: 100vw;
+        height: 100vh;
+
+        font-family: serif;
+        font-weight: bold;
+        font-size: large;
+
+        display: grid;
+        grid-template-rows: 150px 1fr 1fr 75px;
+        grid-template-columns: 1fr 1fr;
+
+        gap: 10px;
+        padding: 50px;
+        box-sizing: border-box;
+    }
+
+    #container {
+        padding: 10px;
+        border: 1px solid #000;
+    }
+
+    .container .page-title {
+        margin-bottom: 10px;
+        padding: 10px;
+        grid-row-start: 1;
+        grid-row-end: 1;
+        grid-column-start: 1;
+        grid-column-end: span 2;
+        font-weight: bolder;
+        font-size: xx-large;
+        text-align: center;
+        align-self: end;
+        border: 1px solid #000;
+    }
+
+    .panel{
+        text-align: center;
+        border: 1px solid #000;
+    }
+
+    .flex {
+        display: flex;
+        border: none;
+        padding: 0;
+    }
+
+    .panel p{
+        padding-left: 5px;
+    }
+
+    .section {
+        flex: 50%;
+        padding: 5px;
+        border: none;
+    }
+
+    .btn-flex {
+        display: block;
+        padding: 5px;
+        border: none;
+    }
+
+    .panel table {
+        width: 100%;
+        font-size: medium;
+        font-weight: normal;
+    }
+
+    .panel table td {
+        padding: 5px;
+    }
+
+    tr:nth-child(odd) {
+        background-color: #f2f2f2;
+    }
+    
+    .panel button {
+        margin-top: 5%;
+        border-radius: 0;
+        font-size: medium;
+        font-family: serif;
+    }
+
+    #add-item-btn {
+        appearance: auto;
+        text-rendering: auto;
+        color: -internal-light-dark(black, white);
+        letter-spacing: normal;
+        word-spacing: normal;
+        line-height: normal;
+        text-transform: none;
+        text-indent: 0px;
+        text-shadow: none;
+        display: inline-block;
+        text-align: center;
+        align-items: flex-start;
+        cursor: default;
+        box-sizing: border-box;
+        background-color: -internal-light-dark(rgb(239, 239, 239), rgb(59, 59, 59));
+        margin: 0em;
+        padding: 1px 6px;
+        border-width: 2px;
+        border-style: outset;
+        border-color: -internal-light-dark(rgb(118, 118, 118), rgb(133, 133, 133));
+        border-image: initial;
+        margin-top: 5%;
+        border-radius: 0;
+        font-size: medium;
+        font-family: serif;
+    }
+
+    #logout {
+        margin-bottom: 10px;
+        padding: 10px;
+        grid-row-start: 4;
+        grid-row-end: 4;
+        grid-column-start: 1;
+        grid-column-end: span 2;
+        font-weight: bolder;
+        font-size: normal;
+        text-align: center;
+        align-self: end;
+        /* border: 1px solid #000; */
+    }
+
+</style>
+<body>
+    <script>updatePartyList();</script>
+    <div class="container" id="container">
+        <p class="page-title">Dungeon Master Dashboard</p>
+
+        <div class="panel" id="parties">
+            <p style="font-size: large;" id="party-name">Your Parties</p>
+            <div class="flex">
+                <div class="section" id="party-names">
+                    <table>
+                        <tr>
+                            <td data-pid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td data-pid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td data-pid="" style='text-decoration: underline;'>&nbsp;</td> 
+                        </tr>
+                        <tr>
+                            <td data-pid="" style='text-decoration: underline;'>&nbsp;</td>  
+                        </tr>
+                        <tr>
+                            <td data-pid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="section" id="triggers">
+                    <table id="btn-table">
+                        <tr>
+                            <td><a href="">&nbsp;</a></td>
+                        </tr>
+                        <tr>
+                            <td><a href="">&nbsp;</a></td>
+                        </tr>
+                        <tr>
+                            <td><a href="">&nbsp;</a></td>
+                        </tr>
+                        <tr>
+                            <td><a href="">&nbsp;</a></td> 
+                        </tr>
+                        <tr>
+                            <td><a href="">&nbsp;</a></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="btn-flex">
+                <form action="/create_party"><button>New Party</button></form>
+            </div>
+        </div>
+        
+        <div hidden class="panel" id="characters" data-pid="" data-name="">
+            <p></p>
+            <div class="flex">
+                <div class="section" id="char-names">
+                    <table>
+                        <tr>
+                            <td data-cid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td data-cid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td data-cid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td data-cid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td data-cid="" style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="section" id="removes">
+                    <table id="btn-table">
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <form class="btn-flex" action="javascript:addCharacter();">
+                <select style="margin-left: 5px;" class="section" id="add-char-user-select" onchange="javascript:updateUserCharacters()"></select>
+                <button style="margin-left: 5px; margin-right: 5px;" type="submit" id="temp-add-item-btn">Add Character</button>
+                <select style="margin-left: 5px;" class="section" id="add-char-select"></select>
+            </form>
+        </div>
+
+        <div hidden class="panel" id="items">
+            <!-- <div class="flex"> -->
+            <!-- <form class="flex" id="trade-form"> -->
+                <div class="section">
+                    <p>Custom Items</p>
+                    <select class="section" id="custom-items" style="margin: 10px;">
+                    </select>
+
+                </div>
+                <div class="section">
+                    <p>Global Items</p>
+                    <select class="section" id="global-items" style="margin: 10px;">
+                    </select>
+
+                </div>
+            <!-- </form> -->
+            <!-- </div> -->
+            <!-- <div class="btn-flex">
+                <form action="javascript:sendItem();"><button type="submit" style="margin-top: 37%;">Send Item</button></form>
+            </div> -->
+        </div>
+
+        <div class="panel" id="summaries">
+            <p>Summary of Items</p>
+            <div class="flex">
+                <div class="section" id="selected-attrs">
+                    <table>
+                        <tr>
+                            <td>Name</td>
+                        </tr>
+                        <tr>
+                            <td>Category</td>
+                        </tr>
+                        <tr>
+                            <td>Weight</td>                        
+                        </tr>
+                        <tr>
+                            <td>Value</td> 
+                        </tr>
+                    </table>
+                </div>
+                <div class="section" id="selected-vals">
+                    <table>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                        <tr>
+                            <td style='text-decoration: underline;'>&nbsp;</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="flex">
+                <select class="section" id="item-summary-select" style="text-align: center; margin: 10px;" onchange="javascript:updateItemSummary()">
+                    <option disabled selected>-</option>
+                </select>
+                <div class="section" id="item-desc-div">
+                    <p id="item-desc" style="font-size: small; font-weight: bold;">
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <a id="logout" href="/logout">Log Out</a>
+    </div>
+
+
+</body>
+</html>

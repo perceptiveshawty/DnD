@@ -1,0 +1,38 @@
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DnD Inventory Tracker</title>
+</head>
+
+<style>
+    .center{
+        margin: auto;
+        text-align: center;
+        width: 50%;
+        border: 1px solid black;
+        padding : 10px;
+    }
+    .submit-button{
+        border-radius: 0;
+        font-size: medium;
+        font-family: serif;
+    }
+</style>
+<body>
+    <div class = "container" id = "container">
+        <div class = "center">
+            <h1>Create New Party</h1>
+        </div>
+        <br>
+        <div class = "center">
+            <form action = "/create_party" method="post">
+                <label for="party_name"> Party Name: </label><br>
+                <input type = "text" id = "party_name" name = "party_name" placeholder = "Enter Party Name"><br><br>
+
+            </form>
+        </div>
+    </div>
+</body>
+
+
